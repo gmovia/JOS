@@ -1,7 +1,9 @@
 #include <inc/mmu.h>
 #include <inc/memlayout.h>
 
+#ifndef TP1_PSE
 pte_t entry_pgtable[NPTENTRIES];
+#endif
 
 // The entry.S page directory maps the first 4MB of physical memory
 // starting at virtual address KERNBASE (that is, it maps virtual
@@ -17,6 +19,7 @@ pte_t entry_pgtable[NPTENTRIES];
 // related to linking and static initializers, we use "x + PTE_P"
 // here, rather than the more standard "x | PTE_P".  Everywhere else
 // you should use "|" to combine flags.
+#ifndef TP1_PSE
 __attribute__((__aligned__(PGSIZE)))
 pde_t entry_pgdir[NPDENTRIES] = {
 	// Map VA's [0, 4MB) to PA's [0, 4MB)
@@ -26,9 +29,19 @@ pde_t entry_pgdir[NPDENTRIES] = {
 	[KERNBASE>>PDXSHIFT]
 		= ((uintptr_t)entry_pgtable - KERNBASE) + PTE_P + PTE_W
 };
-
+#else
+__attribute__((__aligned__(PGSIZE)))
+pde_t entry_pgdir[NPDENTRIES] = {
+	[0]
+		= (0) + PTE_P + PTE_PS,
+	[KERNBASE>>PDXSHIFT]
+		= (0) + PTE_P + PTE_W + PTE_PS
+	
+};
+#endif
 // Entry 0 of the page table maps to physical page 0, entry 1 to
 // physical page 1, etc.
+#ifndef TP1_PSE
 __attribute__((__aligned__(PGSIZE)))
 pte_t entry_pgtable[NPTENTRIES] = {
 	0x000000 | PTE_P | PTE_W,
@@ -1056,4 +1069,4 @@ pte_t entry_pgtable[NPTENTRIES] = {
 	0x3fe000 | PTE_P | PTE_W,
 	0x3ff000 | PTE_P | PTE_W,
 };
-
+#endif
