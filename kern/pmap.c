@@ -105,7 +105,7 @@ boot_alloc(uint32_t n)
 	// to a multiple of PGSIZE.
 	//
 	if (n > 0) {
-		// we have up to 4MB
+		// we have up to 4MB (for now)
 		if (n > 4 * 1024 * 1024)
 			panic("boot_alloc(): not enough memory");
 		// we make sure nextfree is aligned
