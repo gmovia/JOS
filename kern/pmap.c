@@ -167,7 +167,9 @@ mem_init(void)
 	//
 	//////////////////////////////////////////////////////////////////////
 	// Make 'envs' point to an array of size 'NENV' of 'struct Env'.
-	// LAB 3: Your code here.
+	
+	envs = (struct Env *) boot_alloc(NENV * sizeof(struct Env));
+	memset(envs, 0, NENV * sizeof(struct Env));
 
 	//////////////////////////////////////////////////////////////////////
 	// Now that we've allocated the initial kernel data structures, we set
@@ -190,7 +192,6 @@ mem_init(void)
 	//    - the new image at UPAGES -- kernel R, user R
 	//      (ie. perm = PTE_U | PTE_P)
 	//    - pages itself -- kernel RW, user NONE
-	// Your code goes here:
 	boot_map_region(kern_pgdir,
 	                UPAGES,
 	                ROUNDUP(npages * sizeof(struct PageInfo), PGSIZE),
@@ -203,7 +204,11 @@ mem_init(void)
 	// Permissions:
 	//    - the new image at UENVS  -- kernel R, user R
 	//    - envs itself -- kernel RW, user NONE
-	// LAB 3: Your code here.
+	boot_map_region(kern_pgdir,
+	                UENVS,
+	                ROUNDUP(NENV * sizeof(struct Env), PGSIZE),
+	                PADDR(envs),
+	                PTE_U);
 
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel
@@ -295,8 +300,8 @@ page_init(void)
 	}
 
 	int hole_start = PGNUM(IOPHYSMEM);
-	// the last allocated page (maybe fix this)
-	int hole_end = PGNUM(PADDR(&pages[npages - 1])) + 1;
+	// the page next to end of kernel image
+	int hole_end = PGNUM(PADDR(boot_alloc(0)));
 	for (i = hole_start; i < hole_end; i++) {
 		pages[i].pp_link = NULL;
 	}
@@ -430,7 +435,7 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
 	}
 #else
 	for (int i = 0; i < size; i += PGSIZE) {
-		if (va % PTSIZE == 0 && pa % PTSIZE == 0 && size % PTSIZE == 0) {
+		if (va % PTSIZE == 0 && pa % PTSIZE == 0 && (size - i) >= PTSIZE) {
 			// we alloc a large page
 			pde_t *pd_e = &pgdir[PDX(va + i)];
 			*pd_e = (pa + i) | perm | PTE_PS | PTE_P;
