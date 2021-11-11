@@ -112,7 +112,11 @@ void
 env_init(void)
 {
 	// Set up envs array
-	// LAB 3: Your code here.
+	for (int i = NENV; i > 0; i--) {
+		envs[i - 1].env_id = 0;
+		envs[i - 1].env_link = env_free_list;
+		env_free_list = &envs[i - 1];
+	}
 
 	// Per-CPU part of the initialization
 	env_init_percpu();
@@ -175,7 +179,9 @@ env_setup_vm(struct Env *e)
 	//	pp_ref for env_free to work correctly.
 	//    - The functions in kern/pmap.h are handy.
 
-	// LAB 3: Your code here.
+	p->pp_ref++;
+	e->env_pgdir = (pde_t *) page2kva(p);
+	memcpy(e->env_pgdir, kern_pgdir, PGSIZE);
 
 	// UVPT maps the env's own page table read-only.
 	// Permissions: kernel R, user R
@@ -257,13 +263,20 @@ env_alloc(struct Env **newenv_store, envid_t parent_id)
 static void
 region_alloc(struct Env *e, void *va, size_t len)
 {
-	// LAB 3: Your code here.
-	// (But only if you need it for load_icode.)
-	//
 	// Hint: It is easier to use region_alloc if the caller can pass
 	//   'va' and 'len' values that are not page-aligned.
 	//   You should round va down, and round (va + len) up.
 	//   (Watch out for corner-cases!)
+	void *va_round = ROUNDDOWN(va, PGSIZE);
+	int n = PGNUM(PADDR(ROUNDUP(va + len, PGSIZE))) - PGNUM(PADDR(va));
+	for (int i = 0; i < n; i++) {
+		struct PageInfo *pp = page_alloc(0);
+		if (!pp)
+			panic("out of memory.");
+		if (page_insert(e->env_pgdir, pp, va_round + (i * PGSIZE), PTE_W | PTE_U) < 0)
+			panic("out of memory.");
+
+	}
 }
 
 //
@@ -324,7 +337,22 @@ load_icode(struct Env *e, uint8_t *binary)
 	// Now map one page for the program's initial stack
 	// at virtual address USTACKTOP - PGSIZE.
 
-	// LAB 3: Your code here.
+	lcr3(PADDR(e->env_pgdir));
+
+	struct Elf *elf = (struct Elf *) binary;
+	for (int i = 0; i < elf->e_phnum; i++) {
+		struct Proghdr *ph = (struct Proghdr *) (elf->e_entry + elf->e_phoff + (i * sizeof(struct Proghdr)));
+		if (ph->p_type == ELF_PROG_LOAD) {
+			region_alloc(e, (void *) ph->p_va, ph->p_memsz);
+			memcpy((void *) ph->p_va, binary + ph->p_offset, ph->p_filesz);
+			memset((void *) (ph->p_va + ph->p_filesz), '\0', ph->p_memsz - ph->p_filesz);
+		}
+	}
+
+	env_run(e);
+
+	lcr3(PADDR(kern_pgdir));
+
 }
 
 //
