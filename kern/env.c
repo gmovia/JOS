@@ -273,9 +273,11 @@ region_alloc(struct Env *e, void *va, size_t len)
 		struct PageInfo *pp = page_alloc(0);
 		if (!pp)
 			panic("out of memory.");
-		if (page_insert(e->env_pgdir, pp, va_round + (i * PGSIZE), PTE_W | PTE_U) < 0)
+		if (page_insert(e->env_pgdir,
+		                pp,
+		                va_round + (i * PGSIZE),
+		                PTE_W | PTE_U) < 0)
 			panic("out of memory.");
-
 	}
 }
 
@@ -336,11 +338,17 @@ load_icode(struct Env *e, uint8_t *binary)
 
 	struct Elf *elf = (struct Elf *) binary;
 	for (int i = 0; i < elf->e_phnum; i++) {
-		struct Proghdr *ph = (struct Proghdr *) (binary + elf->e_phoff + (i * sizeof(struct Proghdr)));
+		struct Proghdr *ph =
+		        (struct Proghdr *) (binary + elf->e_phoff +
+		                            (i * sizeof(struct Proghdr)));
 		if (ph->p_type == ELF_PROG_LOAD) {
 			region_alloc(e, (void *) ph->p_va, ph->p_memsz);
-			memcpy((void *) ph->p_va, binary + ph->p_offset, ph->p_filesz);
-			memset((void *) (ph->p_va + ph->p_filesz), 0, ph->p_memsz - ph->p_filesz);
+			memcpy((void *) ph->p_va,
+			       binary + ph->p_offset,
+			       ph->p_filesz);
+			memset((void *) (ph->p_va + ph->p_filesz),
+			       0,
+			       ph->p_memsz - ph->p_filesz);
 		}
 	}
 
