@@ -268,7 +268,7 @@ region_alloc(struct Env *e, void *va, size_t len)
 	//   You should round va down, and round (va + len) up.
 	//   (Watch out for corner-cases!)
 	void *va_round = ROUNDDOWN(va, PGSIZE);
-	int n = PGNUM(PADDR(ROUNDUP(va + len, PGSIZE))) - PGNUM(PADDR(va));
+	int n = PGNUM(ROUNDUP(va + len, PGSIZE)) - PGNUM(va_round);
 	for (int i = 0; i < n; i++) {
 		struct PageInfo *pp = page_alloc(0);
 		if (!pp)
@@ -332,27 +332,26 @@ load_icode(struct Env *e, uint8_t *binary)
 	//  to make sure that the environment starts executing there.
 	//  What?  (See env_run() and env_pop_tf() below.)
 
-	// LAB 3: Your code here.
-
-	// Now map one page for the program's initial stack
-	// at virtual address USTACKTOP - PGSIZE.
-
 	lcr3(PADDR(e->env_pgdir));
 
 	struct Elf *elf = (struct Elf *) binary;
 	for (int i = 0; i < elf->e_phnum; i++) {
-		struct Proghdr *ph = (struct Proghdr *) (elf->e_entry + elf->e_phoff + (i * sizeof(struct Proghdr)));
+		struct Proghdr *ph = (struct Proghdr *) (binary + elf->e_phoff + (i * sizeof(struct Proghdr)));
 		if (ph->p_type == ELF_PROG_LOAD) {
 			region_alloc(e, (void *) ph->p_va, ph->p_memsz);
 			memcpy((void *) ph->p_va, binary + ph->p_offset, ph->p_filesz);
-			memset((void *) (ph->p_va + ph->p_filesz), '\0', ph->p_memsz - ph->p_filesz);
+			memset((void *) (ph->p_va + ph->p_filesz), 0, ph->p_memsz - ph->p_filesz);
 		}
 	}
 
-	env_run(e);
-
 	lcr3(PADDR(kern_pgdir));
 
+	// entry point
+	e->env_tf.tf_eip = elf->e_entry;
+
+	// Now map one page for the program's initial stack
+	// at virtual address USTACKTOP - PGSIZE.
+	region_alloc(e, (void *) (USTACKTOP - PGSIZE), PGSIZE);
 }
 
 //
@@ -365,7 +364,12 @@ load_icode(struct Env *e, uint8_t *binary)
 void
 env_create(uint8_t *binary, enum EnvType type)
 {
-	// LAB 3: Your code here.
+	struct Env *env;
+	int err;
+	if ((err = env_alloc(&env, 0)) < 0)
+		panic("env_create(): %e", err);
+	env->env_type = type;
+	load_icode(env, binary);
 }
 
 //
@@ -481,7 +485,13 @@ env_run(struct Env *e)
 	//	and make sure you have set the relevant parts of
 	//	e->env_tf to sensible values.
 
-	// LAB 3: Your code here.
-
-	panic("env_run not yet implemented");
+	// stop the current env
+	if (curenv && curenv->env_status == ENV_RUNNING)
+		curenv->env_status = ENV_RUNNABLE;
+	// switch to new env
+	curenv = e;
+	curenv->env_status = ENV_RUNNING;
+	curenv->env_runs++;
+	lcr3(PADDR(curenv->env_pgdir));
+	env_pop_tf(&curenv->env_tf);
 }
