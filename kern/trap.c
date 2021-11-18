@@ -85,13 +85,12 @@ trap_init(void)
 {
 	extern struct Segdesc gdt[];
 
-	// DIVIDE ERROR #DE
+	// Divide Error
 	SETGATE(idt[T_DIVIDE], 0, GD_KT, trap_0, 0);
-	// DEBUG EXCEPTION
+	// Debug Exception
 	SETGATE(idt[T_DEBUG], 0, GD_KT, trap_1, 0);
-
+	// NMI Interrupt
 	SETGATE(idt[T_NMI], 0, GD_KT, trap_2, 0);
-
 	// Breakpoint (RING 3)
 	SETGATE(idt[T_BRKPT], 0, GD_KT, trap_3, 3);
 	// Overflow
@@ -118,7 +117,7 @@ trap_init(void)
 	SETGATE(idt[T_FPERR], 0, GD_KT, trap_16, 0);
 	// Alignment Check
 	SETGATE(idt[T_ALIGN], 0, GD_KT, trap_17, 0);
-	// Machine ChecK
+	// Machine Check
 	SETGATE(idt[T_MCHK], 0, GD_KT, trap_18, 0);
 	// SIMD Floating-Point Exception
 	SETGATE(idt[T_SIMDERR], 0, GD_KT, trap_19, 0);
@@ -207,6 +206,8 @@ trap_dispatch(struct Trapframe *tf)
 		monitor(tf);
 		return;
 	case T_PGFLT:
+		if ((tf->tf_cs & 3) == 0)
+			panic("page fault in ring 0.");
 		page_fault_handler(tf);
 		return;
 	case T_SYSCALL:
@@ -275,10 +276,6 @@ page_fault_handler(struct Trapframe *tf)
 
 	// Read processor's CR2 register to find the faulting address
 	fault_va = rcr2();
-
-	// Handle kernel-mode page faults.
-
-	// LAB 3: Your code here.
 
 	// We've already handled kernel-mode exceptions, so if we get here,
 	// the page fault happened in user mode.
