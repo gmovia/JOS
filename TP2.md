@@ -191,23 +191,23 @@ Y finalmente se actualiza el stack pointer (%esp + 8) para saltear los valores d
 
 - **imprimir el valor del contador de programa con p $pc o p $eip**
 
-    (gdb) p $eip
-    $4 = (void (*)()) 0x800020
+        (gdb) p $eip
+        $4 = (void (*)()) 0x800020
 
 
 - **cargar los símbolos de hello con el comando add-symbol-file**
 
-    (gdb) add-symbol-file obj/user/hello 0x800020
-    add symbol table from file "obj/user/hello" at
-        .text_addr = 0x800020
-    (y or n) y
-    Reading symbols from obj/user/hello...
+        (gdb) add-symbol-file obj/user/hello 0x800020
+        add symbol table from file "obj/user/hello" at
+            .text_addr = 0x800020
+        (y or n) y
+        Reading symbols from obj/user/hello...
 
 - **volver a imprimir el valor del contador de programa**
 
 
-    (gdb) p $pc
-    $5 = (void (*)()) 0x800020 <_start>
+        (gdb) p $pc
+        $5 = (void (*)()) 0x800020 <_start>
 
 **Mostrar una última vez la salida de info registers en QEMU, y explicar los cambios producidos.**
 
