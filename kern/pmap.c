@@ -274,6 +274,17 @@ mem_init(void)
 static void
 mem_init_mp(void)
 {
+	//  Asignar pilas por CPU comenzando en KSTACKTOP, hasta CPU 'NCPU'.
+	for (int i = 0; i < NCPU; i++) {
+		uint32_t kstacktop_i = KSTACKTOP - i * (KSTKSIZE + KSTKGAP);
+
+		boot_map_region(kern_pgdir,
+		                kstacktop_i - KSTKSIZE,
+		                KSTKSIZE,
+		                PADDR(percpu_kstacks[i]),
+		                PTE_W);
+	}
+
 	// Map per-CPU stacks starting at KSTACKTOP, for up to 'NCPU' CPUs.
 	//
 	// For CPU i, use the physical memory that 'percpu_kstacks[i]' refers
@@ -307,6 +318,8 @@ mem_init_mp(void)
 void
 page_init(void)
 {
+	_Static_assert(MPENTRY_PADDR % PGSIZE == 0,
+	               "MPENTRY_PADDR is not page-aligned");
 	// LAB 4:
 	// Change your code to mark the physical page at MPENTRY_PADDR
 	// as in use
@@ -342,6 +355,8 @@ page_init(void)
 	}
 	// jump the hole
 	pages[hole_end].pp_link = &pages[hole_start - 1];
+	pages[7].pp_link = NULL;
+	pages[8].pp_link = &pages[6];
 }
 
 //
@@ -602,7 +617,6 @@ mmio_map_region(physaddr_t pa, size_t size)
 	// value will be preserved between calls to mmio_map_region
 	// (just like nextfree in boot_alloc).
 	static uintptr_t base = MMIOBASE;
-
 	// Reserve size bytes of virtual memory starting at base and
 	// map physical pages [pa,pa+size) to virtual addresses
 	// [base,base+size).  Since this is device memory and not
@@ -621,7 +635,22 @@ mmio_map_region(physaddr_t pa, size_t size)
 	// Hint: The staff solution uses boot_map_region.
 	//
 	// Your code here:
-	panic("mmio_map_region not implemented");
+
+	uintptr_t pa_down = ROUNDDOWN(pa, PGSIZE);
+	size_t size_up = ROUNDUP(size, PGSIZE);
+
+	if (base + size_up > MMIOLIM) {
+		panic("Map overflow");
+	}
+
+	boot_map_region(
+	        kern_pgdir, base, size_up, pa_down, PTE_PCD | PTE_PWT | PTE_W);
+
+	uintptr_t old_base = base;
+
+	base += size_up;
+
+	return (void *) old_base;
 }
 
 static uintptr_t user_mem_check_addr;
