@@ -49,6 +49,8 @@ extern void trap_17();
 extern void trap_18();
 extern void trap_19();
 
+extern void trap_32();
+
 extern void trap_48();
 
 static const char *
@@ -128,6 +130,8 @@ trap_init(void)
 	SETGATE(idt[T_MCHK], 0, GD_KT, trap_18, 0);
 	// SIMD Floating-Point Exception
 	SETGATE(idt[T_SIMDERR], 0, GD_KT, trap_19, 0);
+
+	SETGATE(idt[IRQ_OFFSET], 0, GD_KT, trap_32, 3);
 
 	// SYSCALL interrupt
 	SETGATE(idt[T_SYSCALL], 0, GD_KT, trap_48, 3);
@@ -248,6 +252,10 @@ trap_dispatch(struct Trapframe *tf)
 		                              tf->tf_regs.reg_ebx,
 		                              tf->tf_regs.reg_edi,
 		                              tf->tf_regs.reg_esi);
+		return;
+	case IRQ_OFFSET:  // Ver
+		lapic_eoi();
+		sched_yield();
 		return;
 	}
 
