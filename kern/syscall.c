@@ -105,6 +105,8 @@ sys_exofork(void)
 		return (envid_t) err;
 	}
 
+	//cprintf("el id del proceso es %d \n",e->env_id) ;
+
 	return e->env_id;
 }
 
@@ -137,6 +139,8 @@ sys_env_set_status(envid_t envid, int status)
 	if (e->env_status != ENV_RUNNABLE && e->env_status != ENV_NOT_RUNNABLE) {
 		return -E_INVAL;
 	}
+
+	e->env_status = status ;
 
 	return 0;
 }
