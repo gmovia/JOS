@@ -274,17 +274,6 @@ mem_init(void)
 static void
 mem_init_mp(void)
 {
-	//  Asignar pilas por CPU comenzando en KSTACKTOP, hasta CPU 'NCPU'.
-	for (int i = 0; i < NCPU; i++) {
-		uint32_t kstacktop_i = KSTACKTOP - i * (KSTKSIZE + KSTKGAP);
-
-		boot_map_region(kern_pgdir,
-		                kstacktop_i - KSTKSIZE,
-		                KSTKSIZE,
-		                PADDR(percpu_kstacks[i]),
-		                PTE_W);
-	}
-
 	// Map per-CPU stacks starting at KSTACKTOP, for up to 'NCPU' CPUs.
 	//
 	// For CPU i, use the physical memory that 'percpu_kstacks[i]' refers
@@ -301,6 +290,16 @@ mem_init_mp(void)
 	//     Permissions: kernel RW, user NONE
 	//
 	// LAB 4: Your code here:
+
+	for (int i = 0; i < NCPU; i++) {
+		uint32_t kstacktop_i = KSTACKTOP - i * (KSTKSIZE + KSTKGAP);
+
+		boot_map_region(kern_pgdir,
+		                kstacktop_i - KSTKSIZE,
+		                KSTKSIZE,
+		                PADDR(percpu_kstacks[i]),
+		                PTE_W);
+	}
 }
 
 // --------------------------------------------------------------
@@ -342,6 +341,9 @@ page_init(void)
 	// free pages!
 	size_t i;
 	for (i = 1; i < npages; i++) {
+		if (i * PGSIZE == MPENTRY_PADDR) {
+			continue;
+		}
 		pages[i].pp_ref = 0;
 		pages[i].pp_link = page_free_list;
 		page_free_list = &pages[i];
@@ -355,8 +357,6 @@ page_init(void)
 	}
 	// jump the hole
 	pages[hole_end].pp_link = &pages[hole_start - 1];
-	pages[7].pp_link = NULL;
-	pages[8].pp_link = &pages[6];
 }
 
 //

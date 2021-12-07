@@ -14,7 +14,7 @@
 #include <kern/cpu.h>
 #include <kern/spinlock.h>
 
-static struct Taskstate ts;
+// static struct Taskstate ts;
 
 /* For debugging, so print_trapframe can distinguish between printing
  * a saved trapframe and printing the current trapframe and print some
@@ -131,7 +131,7 @@ trap_init(void)
 	// SIMD Floating-Point Exception
 	SETGATE(idt[T_SIMDERR], 0, GD_KT, trap_19, 0);
 
-	SETGATE(idt[IRQ_OFFSET], 0, GD_KT, trap_32, 3);
+	SETGATE(idt[IRQ_OFFSET + IRQ_TIMER], 0, GD_KT, trap_32, 3);
 
 	// SYSCALL interrupt
 	SETGATE(idt[T_SYSCALL], 0, GD_KT, trap_48, 3);
@@ -182,7 +182,8 @@ trap_init_percpu(void)
 	uint16_t idx = (GD_TSS0 >> 3) + id;
 	uint16_t seg = idx << 3;
 	// Initialize the TSS slot of the gdt.
-	gdt[idx] = SEG16(STS_T32A, (uint32_t)(&ts), sizeof(struct Taskstate) - 1, 0);
+	gdt[idx] =
+	        SEG16(STS_T32A, (uint32_t)(ts), sizeof(struct Taskstate) - 1, 0);
 	gdt[idx].sd_s = 0;
 
 	// Load the TSS selector (like other segment selectors, the
@@ -248,8 +249,12 @@ trap_dispatch(struct Trapframe *tf)
 		monitor(tf);
 		return;
 	case T_PGFLT:
-		if ((tf->tf_cs & 3) == 0)
+		if ((tf->tf_cs & 3) == 0) {
+			cprintf("curenv: %p \n", curenv->env_id);
+			cprintf("cpunum: %d \n", curenv->env_cpunum);
+			cprintf("parenitd: %p \n", curenv->env_parent_id);
 			panic("page fault in ring 0.");
+		}
 		page_fault_handler(tf);
 		return;
 	case T_SYSCALL:
@@ -260,7 +265,7 @@ trap_dispatch(struct Trapframe *tf)
 		                              tf->tf_regs.reg_edi,
 		                              tf->tf_regs.reg_esi);
 		return;
-	case IRQ_OFFSET:  // Ver
+	case IRQ_OFFSET + IRQ_TIMER:
 		lapic_eoi();
 		sched_yield();
 		return;
@@ -315,7 +320,7 @@ trap(struct Trapframe *tf)
 		// Acquire the big kernel lock before doing any
 		// serious kernel work.
 		// LAB 4: Your code here.
-		lock_kernel() ;
+		lock_kernel();
 		assert(curenv);
 
 		// Garbage collect if current enviroment is a zombie

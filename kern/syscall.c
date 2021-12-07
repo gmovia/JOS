@@ -21,6 +21,15 @@ check_adress(void *va)
 	return 0;
 }
 
+static int
+check_permissions(int perm)
+{
+	if (perm & ~PTE_SYSCALL || ((perm & (PTE_U | PTE_P)) != (PTE_U | PTE_P)))
+		return -E_INVAL;
+	else
+		return 0;
+}
+
 
 // Print a string to the system console.
 // The string is exactly 'len' characters long.
@@ -99,13 +108,13 @@ sys_exofork(void)
 	if (err == 0) {
 		e->env_status = ENV_NOT_RUNNABLE;
 		e->env_tf = curenv->env_tf;
-		//memcpy(&e->env_tf,&curenv->env_tf,sizeof(struct Trapframe)) ;
+		// memcpy(&e->env_tf,&curenv->env_tf,sizeof(struct Trapframe)) ;
 		e->env_tf.tf_regs.reg_eax = 0;
 	} else {
 		return (envid_t) err;
 	}
 
-	//cprintf("el id del proceso es %d \n",e->env_id) ;
+	// cprintf("el id del proceso es %d \n",e->env_id) ;
 
 	return e->env_id;
 }
@@ -140,7 +149,7 @@ sys_env_set_status(envid_t envid, int status)
 		return -E_INVAL;
 	}
 
-	e->env_status = status ;
+	e->env_status = status;
 
 	return 0;
 }
@@ -198,7 +207,9 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 		return err;
 	}
 
-	if (perm & ~PTE_SYSCALL) {
+	if (check_permissions(perm)) {
+		cprintf("%x - %x\n", PTE_SYSCALL, perm);
+		cprintf("sys_page_alloc. 2 fails: %d (-E_BAD_ENV)\n", -E_BAD_ENV);
 		return -E_INVAL;
 	}
 
@@ -268,9 +279,16 @@ sys_page_map(envid_t srcenvid, void *srcva, envid_t dstenvid, void *dstva, int p
 		return -E_INVAL;
 	}
 
-	if (perm & ~PTE_SYSCALL) {  // Ver
+	if (check_permissions(perm)) {
+		cprintf("sys_page_map. 5 fails: %d (-E_INVAL)\n", -E_INVAL);
 		return -E_INVAL;
 	}
+
+	if ((perm & PTE_W) && !(*pte & PTE_W)) {
+		cprintf("sys_page_map. 6 fails: %d (-E_INVAL)\n", -E_INVAL);
+		return -E_INVAL;
+	}
+
 
 	if (page_insert(dst_e->env_pgdir, p, dstva, perm) < 0) {
 		page_free(p);
@@ -401,6 +419,9 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 		return sys_page_alloc((envid_t) a1, (void *) a2, (int) a3);
 	case SYS_page_unmap:
 		return sys_page_unmap((envid_t) a1, (void *) a2);
+	case SYS_yield:
+		sys_yield();
+		return 0;
 	case SYS_page_map:
 		return sys_page_map((envid_t) a1,
 		                    (void *) a2,
