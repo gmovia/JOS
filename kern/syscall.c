@@ -13,7 +13,7 @@
 #include <kern/sched.h>
 
 static int
-check_adress(void *va)
+check_address(void *va)
 {
 	if ((uintptr_t) va >= UTOP || ((uintptr_t) va % PGSIZE) != 0) {
 		return -1;
@@ -108,13 +108,10 @@ sys_exofork(void)
 	if (err == 0) {
 		e->env_status = ENV_NOT_RUNNABLE;
 		e->env_tf = curenv->env_tf;
-		// memcpy(&e->env_tf,&curenv->env_tf,sizeof(struct Trapframe)) ;
 		e->env_tf.tf_regs.reg_eax = 0;
 	} else {
 		return (envid_t) err;
 	}
-
-	// cprintf("el id del proceso es %d \n",e->env_id) ;
 
 	return e->env_id;
 }
@@ -201,19 +198,17 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 
 	struct PageInfo *p;
 
-	int err = envid2env(envid, &e, 1);
+	int err = envid2env(envid, &e, 0);
 
 	if (err < 0) {
 		return err;
 	}
 
 	if (check_permissions(perm)) {
-		cprintf("%x - %x\n", PTE_SYSCALL, perm);
-		cprintf("sys_page_alloc. 2 fails: %d (-E_BAD_ENV)\n", -E_BAD_ENV);
 		return -E_INVAL;
 	}
 
-	if (check_adress(va)) {
+	if (check_address(va)) {
 		return -E_INVAL;
 	}
 
@@ -262,14 +257,14 @@ sys_page_map(envid_t srcenvid, void *srcva, envid_t dstenvid, void *dstva, int p
 	struct PageInfo *p;
 	pte_t *pte;
 
-	int err_s = envid2env(srcenvid, &src_e, 1);
-	int err_d = envid2env(dstenvid, &dst_e, 1);
+	int err_s = envid2env(srcenvid, &src_e, 0);
+	int err_d = envid2env(dstenvid, &dst_e, 0);
 
 	if (err_s < 0 || err_d < 0) {
 		return -E_BAD_ENV;
 	}
 
-	if (check_adress(srcva) || check_adress(dstva)) {
+	if (check_address(srcva) || check_address(dstva)) {
 		return -E_INVAL;
 	}
 
@@ -280,12 +275,10 @@ sys_page_map(envid_t srcenvid, void *srcva, envid_t dstenvid, void *dstva, int p
 	}
 
 	if (check_permissions(perm)) {
-		cprintf("sys_page_map. 5 fails: %d (-E_INVAL)\n", -E_INVAL);
 		return -E_INVAL;
 	}
 
 	if ((perm & PTE_W) && !(*pte & PTE_W)) {
-		cprintf("sys_page_map. 6 fails: %d (-E_INVAL)\n", -E_INVAL);
 		return -E_INVAL;
 	}
 
@@ -315,13 +308,13 @@ sys_page_unmap(envid_t envid, void *va)
 	struct Env *e;
 	struct PageInfo *p;
 
-	int err = envid2env(envid, &e, 1);
+	int err = envid2env(envid, &e, 0);
 
 	if (err < 0) {
 		return err;
 	}
 
-	if (check_adress(va)) {
+	if (check_address(va)) {
 		return -E_INVAL;
 	}
 
@@ -371,8 +364,52 @@ sys_page_unmap(envid_t envid, void *va)
 static int
 sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 {
-	// LAB 4: Your code here.
-	panic("sys_ipc_try_send not implemented");
+	struct Env *e ;
+	pte_t *pte ;
+	struct PageInfo *p ;
+
+	if(envid2env(envid,&e,1) < 0){
+		return -E_BAD_ENV ;
+	}
+	
+	if(!e->env_ipc_recving){
+		return -E_IPC_NOT_RECV ;
+	}
+
+	if((uintptr_t) srcva < UTOP){
+
+		if((uintptr_t) srcva % PGSIZE != 0){
+			return -E_INVAL ;
+		}
+
+		if(check_permissions(perm)){
+			return -E_INVAL ;
+		}
+
+		p = page_lookup(curenv->env_pgdir, srcva, &pte) ;
+
+		if(p  == NULL){
+			return -E_INVAL ;
+		}
+
+		if((uintptr_t) e->env_ipc_dstva < UTOP){
+			if(page_insert(e->env_pgdir, p, srcva, perm) < 0){
+				return -E_NO_MEM ;
+			}
+			e->env_ipc_perm = perm ;
+		}
+	}
+
+	if ((perm & PTE_W) && !(*pte & PTE_W)) {
+		return -E_INVAL;
+	}
+
+	e->env_ipc_recving = 0 ;
+	e->env_ipc_from = envid ;
+	e->env_ipc_value = value ;
+	e->env_status = ENV_RUNNABLE ;
+
+	return 0 ;
 }
 
 // Block until a value is ready.  Record that you want to receive
@@ -388,9 +425,15 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 //	-E_INVAL if dstva < UTOP but dstva is not page-aligned.
 static int
 sys_ipc_recv(void *dstva)
-{
-	// LAB 4: Your code here.
-	panic("sys_ipc_recv not implemented");
+{	
+	if((uintptr_t) dstva < UTOP && ((uintptr_t) dstva % PGSIZE) != 0){
+		return -E_INVAL;
+	}
+
+	curenv->env_ipc_recving = true ;
+	curenv->env_status = ENV_NOT_RUNNABLE ;
+	curenv->env_ipc_dstva = dstva ;
+	
 	return 0;
 }
 

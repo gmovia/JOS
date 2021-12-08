@@ -27,7 +27,7 @@ sched_yield(void)
 	// below to halt the cpu.
 
 	// LAB 4: Your code here.
-
+	
 	struct Env *idle;
 
 	envid_t idx;
@@ -99,7 +99,7 @@ sched_halt(void)
 	             "movl %0, %%esp\n"
 	             "pushl $0\n"
 	             "pushl $0\n"
-	             //"sti\n"
+	             "sti\n"
 	             "1:\n"
 	             "hlt\n"
 	             "jmp 1b\n"

@@ -250,9 +250,6 @@ trap_dispatch(struct Trapframe *tf)
 		return;
 	case T_PGFLT:
 		if ((tf->tf_cs & 3) == 0) {
-			cprintf("curenv: %p \n", curenv->env_id);
-			cprintf("cpunum: %d \n", curenv->env_cpunum);
-			cprintf("parenitd: %p \n", curenv->env_parent_id);
 			panic("page fault in ring 0.");
 		}
 		page_fault_handler(tf);

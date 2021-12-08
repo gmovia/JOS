@@ -21,9 +21,20 @@
 //   a perfectly valid place to map a page.)
 int32_t
 ipc_recv(envid_t *from_env_store, void *pg, int *perm_store)
-{
-	// LAB 4: Your code here.
-	panic("ipc_recv not implemented");
+{	
+	if(!pg){
+		pg = (void*) UTOP ;
+	}
+
+	if(from_env_store){
+		//*from_env_store = 
+	}
+
+	if(perm_store){
+		//*perm_store =
+	}
+	
+	
 	return 0;
 }
 
