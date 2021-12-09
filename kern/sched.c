@@ -27,7 +27,7 @@ sched_yield(void)
 	// below to halt the cpu.
 
 	// LAB 4: Your code here.
-	
+
 	struct Env *idle;
 
 	envid_t idx;

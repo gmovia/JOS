@@ -21,21 +21,34 @@
 //   a perfectly valid place to map a page.)
 int32_t
 ipc_recv(envid_t *from_env_store, void *pg, int *perm_store)
-{	
-	if(!pg){
-		pg = (void*) UTOP ;
+{
+	if (!pg) {
+		pg = (void *) UTOP;
 	}
 
-	if(from_env_store){
-		//*from_env_store = 
+	int err = sys_ipc_recv(pg);
+
+	if (err) {
+		if (from_env_store) {
+			*from_env_store = 0;
+		}
+
+		if (perm_store) {
+			*perm_store = 0;
+		}
+
+		return err;
 	}
 
-	if(perm_store){
-		//*perm_store =
+	if (from_env_store) {
+		*from_env_store = thisenv->env_ipc_from;
 	}
-	
-	
-	return 0;
+
+	if (perm_store) {
+		*perm_store = thisenv->env_ipc_perm;
+	}
+
+	return thisenv->env_ipc_value;
 }
 
 // Send 'val' (and 'pg' with 'perm', if 'pg' is nonnull) to 'toenv'.
@@ -49,8 +62,20 @@ ipc_recv(envid_t *from_env_store, void *pg, int *perm_store)
 void
 ipc_send(envid_t to_env, uint32_t val, void *pg, int perm)
 {
-	// LAB 4: Your code here.
-	panic("ipc_send not implemented");
+	if (!pg) {
+		pg = (void *) UTOP;
+	}
+
+	int err = sys_ipc_try_send(to_env, val, pg, perm);
+
+	while (err == -E_IPC_NOT_RECV) {
+		err = sys_ipc_try_send(to_env, val, pg, perm);
+		sys_yield();
+	}
+
+	if (err != 0) {
+		panic("error ipc_send");
+	}
 }
 
 // Find the first environment of the given type.  We'll use this to
