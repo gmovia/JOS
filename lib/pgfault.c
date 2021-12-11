@@ -28,7 +28,7 @@ set_pgfault_handler(void (*handler)(struct UTrapframe *utf))
 
 	if (_pgfault_handler == 0) {
 
-		if ((r = sys_page_alloc(0, (void*) (UXSTACKTOP - PGSIZE), PTE_W)) < 0){
+		if ((r = sys_page_alloc(0, (void*) (UXSTACKTOP - PGSIZE), PTE_W | PTE_P | PTE_U)) < 0){
 			panic("error set_pgfault_handler") ;
 		}
 	}
