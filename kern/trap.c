@@ -394,30 +394,39 @@ page_fault_handler(struct Trapframe *tf)
 	// LAB 4: Your code here.
 
 	if (curenv->env_pgfault_upcall) {
-   		struct UTrapframe *u;
+		struct UTrapframe *u;
 		// Inicializar a la dirección correcta por abajo de UXSTACKTOP.
 		// No olvidar llamadas a user_mem_assert().
 		if (tf->tf_esp > USTACKTOP && tf->tf_esp < UXSTACKTOP) {
-			user_mem_assert(curenv, (void *) tf->tf_esp - sizeof(struct UTrapframe) - 4, sizeof(struct UTrapframe), PTE_W);
-			u = (struct UTrapframe *) (tf->tf_esp - sizeof(struct UTrapframe) - 4);
-		} 
-		else {
-			user_mem_assert(curenv, (void *) UXSTACKTOP - sizeof(struct UTrapframe), sizeof(struct UTrapframe), PTE_W);
-			u = (struct UTrapframe *) (UXSTACKTOP - sizeof(struct UTrapframe));
+			user_mem_assert(curenv,
+			                (void *) tf->tf_esp -
+			                        sizeof(struct UTrapframe) - 4,
+			                sizeof(struct UTrapframe),
+			                PTE_W);
+			u = (struct UTrapframe *) (tf->tf_esp -
+			                           sizeof(struct UTrapframe) - 4);
+		} else {
+			user_mem_assert(curenv,
+			                (void *) UXSTACKTOP -
+			                        sizeof(struct UTrapframe),
+			                sizeof(struct UTrapframe),
+			                PTE_W);
+			u = (struct UTrapframe *) (UXSTACKTOP -
+			                           sizeof(struct UTrapframe));
 		}
 		// Completar el UTrapframe, copiando desde "tf".
-		u->utf_fault_va = fault_va ; 
-		u->utf_err = tf->tf_err ;
-		u->utf_regs = tf->tf_regs ;
-		u->utf_eip = tf->tf_eip ;
-		u->utf_eflags = tf->tf_eflags ;
-		u->utf_esp = tf->tf_esp ;
+		u->utf_fault_va = fault_va;
+		u->utf_err = tf->tf_err;
+		u->utf_regs = tf->tf_regs;
+		u->utf_eip = tf->tf_eip;
+		u->utf_eflags = tf->tf_eflags;
+		u->utf_esp = tf->tf_esp;
 		// Cambiar a dónde se va a ejecutar el proceso.
-		tf->tf_eip = (uintptr_t) curenv->env_pgfault_upcall ;
-		tf->tf_esp = (uintptr_t) u ;
+		tf->tf_eip = (uintptr_t) curenv->env_pgfault_upcall;
+		tf->tf_esp = (uintptr_t) u;
 		// Saltar.
-		env_run(curenv) ;
-  	}
+		env_run(curenv);
+	}
 	// Destroy the environment that caused the fault.
 	cprintf("[%08x] user fault va %08x ip %08x\n",
 	        curenv->env_id,
