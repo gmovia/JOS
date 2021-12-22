@@ -81,19 +81,32 @@ duppage(envid_t envid, unsigned pn)
 		perm = perm | PTE_COW;
 	}
 
-	perm = perm & ~PTE_W;
+	if (pte & PTE_SHARE) {
+		if (sys_page_map(0,
+		                 (void *) addr,
+		                 envid,
+		                 (void *) addr,
+		                 pte & PTE_SYSCALL) < 0) {
+			panic("sys_page_map error");
+		}
 
-	if (sys_page_map(0, (void *) addr, envid, (void *) addr, perm) < 0) {
-		panic("sys_page_map error");
 	}
 
-	if (perm & PTE_COW) {
-		if (sys_page_map(envid, (void *) addr, 0, (void *) addr, perm) <
+	else {
+		perm = perm & ~PTE_W;
+
+		if (sys_page_map(0, (void *) addr, envid, (void *) addr, perm) <
 		    0) {
 			panic("sys_page_map error");
 		}
-	}
 
+		if (perm & PTE_COW) {
+			if (sys_page_map(envid, (void *) addr, 0, (void *) addr, perm) <
+			    0) {
+				panic("sys_page_map error");
+			}
+		}
+	}
 	return 0;
 }
 

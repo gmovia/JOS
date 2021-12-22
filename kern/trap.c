@@ -50,6 +50,8 @@ extern void trap_18();
 extern void trap_19();
 
 extern void trap_32();
+extern void trap_33();
+extern void trap_36();
 
 extern void trap_48();
 
@@ -132,6 +134,10 @@ trap_init(void)
 	SETGATE(idt[T_SIMDERR], 0, GD_KT, trap_19, 0);
 
 	SETGATE(idt[IRQ_OFFSET + IRQ_TIMER], 0, GD_KT, trap_32, 3);
+
+	SETGATE(idt[IRQ_OFFSET + IRQ_KBD], 0, GD_KT, trap_33, 3);
+
+	SETGATE(idt[IRQ_OFFSET + IRQ_SERIAL], 0, GD_KT, trap_36, 3);
 
 	// SYSCALL interrupt
 	SETGATE(idt[T_SYSCALL], 0, GD_KT, trap_48, 3);
@@ -265,6 +271,12 @@ trap_dispatch(struct Trapframe *tf)
 	case IRQ_OFFSET + IRQ_TIMER:
 		lapic_eoi();
 		sched_yield();
+		return;
+	case IRQ_OFFSET + IRQ_KBD:
+		kbd_intr();
+		return;
+	case IRQ_OFFSET + IRQ_SERIAL:
+		serial_intr();
 		return;
 	}
 
