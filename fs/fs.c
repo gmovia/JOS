@@ -152,7 +152,7 @@ file_block_walk(struct File *f, uint32_t filebno, uint32_t **ppdiskbno, bool all
 	}
 
 	if (filebno >= NDIRECT) {
-
+		
 		if(f->f_indirect == 0){
 		
 			if (!alloc) {
@@ -190,7 +190,7 @@ file_get_block(struct File *f, uint32_t filebno, char **blk)
 	uint32_t *ppdiskbno;
 	int err = file_block_walk(f, filebno, &ppdiskbno, 1);
 
-	if (err != 0) {
+	if (err < 0) {
 		return err;
 	}
 

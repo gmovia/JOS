@@ -323,6 +323,7 @@ static int
 copy_shared_pages(envid_t child)
 {
 	// LAB 5: Your code here.
+	
 	pte_t pte;
 	int err;
 
@@ -345,6 +346,6 @@ copy_shared_pages(envid_t child)
 			}
 		}
 	}
-
+	
 	return 0;
 }

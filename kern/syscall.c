@@ -164,6 +164,7 @@ sys_env_set_trapframe(envid_t envid, struct Trapframe *tf)
 	// LAB 5: Your code here.
 	// Remember to check whether the user has supplied us with a good
 	// address!
+
 	struct Env *e;
 
 	if ((uintptr_t) tf >= UTOP) {
@@ -185,7 +186,6 @@ sys_env_set_trapframe(envid_t envid, struct Trapframe *tf)
 
 	e->env_tf.tf_eflags |= FL_IF;
 	e->env_tf.tf_eflags &= ~FL_IOPL_MASK;
-	
 
 	return 0;
 }
