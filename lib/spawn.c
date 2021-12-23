@@ -325,8 +325,11 @@ copy_shared_pages(envid_t child)
 	// LAB 5: Your code here.
 	pte_t pte;
 	int err;
+
 	for (void *addr = 0; (uintptr_t) addr < UTOP; addr += PGSIZE) {
+		
 		if (uvpd[PDX(addr)] & PTE_P) {
+			
 			pte = uvpt[PGNUM(addr)];
 
 			if (pte & PTE_SHARE) {
