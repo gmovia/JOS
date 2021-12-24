@@ -50,16 +50,17 @@ bc_pgfault(struct UTrapframe *utf)
 	// the disk.
 	//
 	// LAB 5: you code here:
-	addr = ROUNDDOWN(addr, PGSIZE);
+	
+	void *va = ROUNDDOWN(addr, PGSIZE);
 
-	if (sys_page_alloc(0, addr, PTE_U | PTE_P | PTE_W) != 0) {
+	if (sys_page_alloc(0, va, PTE_SYSCALL) != 0) {
 		panic("sys_page_alloc error");
 	}
 
-	if (ide_read(blockno * BLKSECTS, addr, BLKSECTS) != 0) {
+	if (ide_read(blockno * BLKSECTS, va, BLKSECTS) != 0) {
 		panic("ide_read error");
 	}
-
+	
 	// Clear the dirty bit for the disk block page since we just read the
 	// block from disk
 	if ((r = sys_page_map(0, addr, 0, addr, uvpt[PGNUM(addr)] & PTE_SYSCALL)) <
