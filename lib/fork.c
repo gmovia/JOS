@@ -71,7 +71,7 @@ pgfault(struct UTrapframe *utf)
 //
 static int
 duppage(envid_t envid, unsigned pn)
-{	
+{
 	int r;
 	uintptr_t addr = pn * PGSIZE;
 	pte_t pte = uvpt[pn];

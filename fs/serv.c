@@ -266,7 +266,7 @@ serve_write(envid_t envid, struct Fsreq_write *req)
 		return err;
 	}
 
-	//file_set_size(o->o_file, o->o_fd->fd_offset + req->req_n);
+	// file_set_size(o->o_file, o->o_fd->fd_offset + req->req_n);
 
 	err = file_write(o->o_file, req->req_buf, req->req_n, o->o_fd->fd_offset);
 

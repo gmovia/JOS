@@ -50,7 +50,7 @@ bc_pgfault(struct UTrapframe *utf)
 	// the disk.
 	//
 	// LAB 5: you code here:
-	
+
 	void *va = ROUNDDOWN(addr, PGSIZE);
 
 	if (sys_page_alloc(0, va, PTE_SYSCALL) != 0) {
@@ -60,7 +60,7 @@ bc_pgfault(struct UTrapframe *utf)
 	if (ide_read(blockno * BLKSECTS, va, BLKSECTS) != 0) {
 		panic("ide_read error");
 	}
-	
+
 	// Clear the dirty bit for the disk block page since we just read the
 	// block from disk
 	if ((r = sys_page_map(0, addr, 0, addr, uvpt[PGNUM(addr)] & PTE_SYSCALL)) <
@@ -83,8 +83,7 @@ bc_pgfault(struct UTrapframe *utf)
 // Hint: Don't forget to round addr down.
 void
 flush_block(void *addr)
-{	
-
+{
 	uint32_t blockno = ((uint32_t) addr - DISKMAP) / BLKSIZE;
 
 	if (addr < (void *) DISKMAP || addr >= (void *) (DISKMAP + DISKSIZE))

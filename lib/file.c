@@ -143,11 +143,10 @@ devfile_write(struct Fd *fd, const void *buf, size_t n)
 	// LAB 5: Your code here
 	fsipcbuf.write.req_fileid = fd->fd_file.id;
 
-	if(n > sizeof(fsipcbuf.write.req_buf)){
-		fsipcbuf.write.req_n = sizeof(fsipcbuf.write.req_buf) ;
-	}
-	else{
-		fsipcbuf.write.req_n = n ;
+	if (n > sizeof(fsipcbuf.write.req_buf)) {
+		fsipcbuf.write.req_n = sizeof(fsipcbuf.write.req_buf);
+	} else {
+		fsipcbuf.write.req_n = n;
 	}
 
 	memcpy(fsipcbuf.write.req_buf, buf, fsipcbuf.write.req_n);

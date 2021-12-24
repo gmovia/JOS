@@ -178,7 +178,7 @@ sys_env_set_trapframe(envid_t envid, struct Trapframe *tf)
 	}
 
 	e->env_tf = *tf;
-	
+
 	e->env_tf.tf_es |= 3;
 	e->env_tf.tf_ds |= 3;
 	e->env_tf.tf_cs |= 3;
